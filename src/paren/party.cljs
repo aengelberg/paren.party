@@ -1,6 +1,7 @@
 (ns paren.party
   (:require
     [cljsjs.soundjs]
+    [goog.userAgent :refer [MOBILE]]
     [manifold-cljs.deferred :as d]
     [manifold-cljs.executor :as ex]
     [manifold-cljs.time :as mt]
@@ -15,28 +16,16 @@
   (.getTime (js/Date.)))
 
 
+(defonce started? (atom false))
+
+
+(defonce ready? (atom false))
+
+
 (defonce parens (atom {}))
 
 
 (defonce bg-color (atom "#000000"))
-
-
-(defn page
-  []
-  [:div.main
-   {:style {:background-color @bg-color}}
-   (for [[id {:keys [text color size posn rotate]}] @parens
-         :when posn
-         :let [{:keys [x y]} posn]]
-     ^{:key id}
-     [:span
-      {:style {:position "fixed"
-               :left (str (* 100 x) "%")
-               :top (str (* 100 y) "%")
-               :color color
-               :transform (str "rotate(" rotate "deg)")
-               :font-size (str size "pt")}}
-      text])])
 
 
 (defn between
@@ -132,14 +121,46 @@
              :end {:x 0.53, :y end-y}}})))
 
 
+(defn start-the-party!
+  []
+  (reset! music-started (millis))
+  (mt/every (/ 1000 60) #(update-parens!))
+  (mt/every (/ measure 1.5) #(add-parens!))
+  (mt/every 64000 #(createjs.Sound.play "music")))
+
+
 (createjs.Sound.on
   "fileload"
-  (fn start-daemons
+  (fn maybe-start
     []
-    (reset! music-started (millis))
-    (mt/every (/ 1000 60) #(update-parens!))
-    (mt/every (/ measure 1.5) #(add-parens!))
-    (mt/every 64000 #(createjs.Sound.play "music"))))
+    (reset! ready? true)
+    (when-not MOBILE
+      (start-the-party!))))
+
+
+(defn page
+  []
+  (if (or @started? (not MOBILE))
+    [:div.main
+     {:style {:background-color @bg-color}}
+     (for [[id {:keys [text color size posn rotate]}] @parens
+           :when posn
+           :let [{:keys [x y]} posn]]
+       ^{:key id}
+       [:span
+        {:style {:position "fixed"
+                 :left (str (* 100 x) "%")
+                 :top (str (* 100 y) "%")
+                 :color color
+                 :transform (str "rotate(" rotate "deg)")
+                 :font-size (str size "pt")}}
+        text])]
+    [:div.main
+     {:style {:background-color "black"}
+      :on-click #(when @ready?
+                   (reset! started? true)
+                   (start-the-party!))}
+     [:p.touch-to-start "Touch to start"]]))
 
 
 (defonce start
