@@ -132,8 +132,20 @@
              :end {:x 0.53, :y end-y}}})))
 
 
-(defonce tick-daemon (mt/every (/ 1000 60) #(update-parens!)))
-(defonce add-daemon (mt/every (/ measure 1.5) #(add-parens!)))
+(createjs.Sound.on
+  "fileload"
+  (fn start-daemons
+    []
+    (reset! music-started (millis))
+    (mt/every (/ 1000 60) #(update-parens!))
+    (mt/every (/ measure 1.5) #(add-parens!))
+    (mt/every 64000 #(createjs.Sound.play "music"))))
+
+
+(defonce start
+  (createjs.Sound.registerSound
+    #js{:src "/paren-party.mp3"
+        :id "music"}))
 
 
 (reagent/render-component
