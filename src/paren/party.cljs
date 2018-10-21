@@ -94,9 +94,9 @@
             parens)))
   (let [now (millis)
         n (* (- now @music-started) (/ measure) 2 Math/PI)
-        r (max 0 (* 30 (Math/sin n)))
-        g (max 0 (* 30 (Math/sin (+ n (* 0.66 Math/PI)))))
-        b (max 0 (* 30 (Math/sin (+ n (* 1.33 Math/PI)))))]
+        r (max 0 (* 20 (Math/sin n)))
+        g (max 0 (* 20 (Math/sin (+ n (* 0.66 Math/PI)))))
+        b (max 0 (* 20 (Math/sin (+ n (* 1.33 Math/PI)))))]
     (reset! bg-color (str "rgb(" r "," g "," b ")"))))
 
 
