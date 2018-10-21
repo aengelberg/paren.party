@@ -1,5 +1,6 @@
 (ns paren.party
   (:require
+    [cljsjs.soundjs]
     [manifold-cljs.deferred :as d]
     [manifold-cljs.executor :as ex]
     [manifold-cljs.time :as mt]
@@ -7,31 +8,109 @@
 
 (enable-console-print!)
 
-(println "Hi")
-
 ;; define your app data so that it doesn't get over-written on reload
 
-(def app-state
-  (atom
-    {:title ""
-     :subtitle ""}))
+(defn millis
+  []
+  (.getTime (js/Date.)))
 
 
-(defn animate-text!
-  [data-key title]
-  (d/loop [chars title]
-    (when-not (empty? chars)
-      (d/chain
-        (mt/in (+ 30 (rand-int 30)) (constantly nil))
-        (fn next-letter
-          []
-          (swap! app-state update-in data-key str (first chars))
-          (d/recur (rest chars)))))))
+(defonce parens (atom {}))
 
 
 (defn page
   []
-  [:div "sup"])
+  [:div
+   {:style {:width "100%"
+            :height "100%"
+            :background-color (rand-nth ["red" "blue"])}}
+   (for [[id {:keys [text color size posn rotate]}] @parens
+         :when posn
+         :let [{:keys [x y]} posn]]
+     ^{:key id}
+     [:span
+      {:style {:position "fixed"
+               :left (str (* 100 x) "%")
+               :top (str (* 100 y) "%")
+               :color color
+               :transform (str "rotate(" rotate "deg)")
+               :font-size (str size "pt")}}
+      text])])
+
+
+(defn between
+  [lo hi frac]
+  (+ lo (* frac (- hi lo))))
+
+
+(defn rand-between
+  [lo hi]
+  (+ lo (* (rand) (- hi lo))))
+
+
+(defn rand-color
+  []
+  (apply str "#" (shuffle [(rand-nth ["CC" "FF"])
+                           (rand-nth ["00" "22" "88" "EE"])
+                           (rand-nth ["33" "77" "DD"])])))
+
+
+(def measure 2000)
+
+
+(defonce music-started (atom 0))
+
+
+(defn update-parens!
+  []
+  (swap!
+    parens
+    (fn [parens]
+      (into {}
+            (keep
+              (fn [[id {:keys [started total size start end]
+                        :as paren}]]
+                (let [now (millis)
+                      progress (- now started)
+                      rhythm-progress (- now @music-started)
+                      %complete (/ progress total)
+                      base-x (between (:x start) (:x end) %complete)
+                      base-y (between (:y start) (:y end) %complete)
+                      horizontal-jump (Math/cos (* rhythm-progress (/ measure) Math/PI 4))
+                      jump-x (* 0.02 horizontal-jump)
+                      jump-y (* -0.03
+                                (/ size 30)
+                                (Math/abs (Math/sin (* rhythm-progress (/ measure) Math/PI 4))))
+                      x (+ base-x jump-x)
+                      y (+ base-y jump-y)
+                      rotate (* horizontal-jump 10)]
+                  (when (< %complete 1)
+                    [id (assoc paren
+                               :posn {:x x, :y y}
+                               :rotate rotate)]))))
+            parens))))
+
+
+(defn add-parens!
+  []
+  (swap! parens assoc
+         (str "paren" (millis))
+         (let [[start-x end-x text] (rand-nth [[-0.01 1 (rand-nth ["(" "[" "{"])]
+                                               [1 -0.01 (rand-nth [")" "]" "}"])]])
+               start-y (rand-between 0.1 0.9)
+               end-y (max 0.1 (min 0.9 (+ start-y (rand-between -0.05 0.05))))
+               size (rand-nth (range 14 30))]
+           {:started (millis)
+            :total (* 10000 (/ 30 size))
+            :text text
+            :size size
+            :color (rand-color)
+            :start {:x start-x, :y start-y}
+            :end {:x end-x, :y end-y}})))
+
+
+(defonce tick-daemon (mt/every (/ 1000 60) #(update-parens!)))
+(defonce add-daemon (mt/every (/ measure 1.5) #(add-parens!)))
 
 
 (reagent/render-component

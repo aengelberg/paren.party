@@ -9,7 +9,8 @@
    [org.clojure/clojurescript "1.10.238"]
    [org.clojure/core.async "0.4.474"]
    [manifold-cljs "0.1.7-1"]
-   [reagent "0.7.0"]]
+   [reagent "0.7.0"]
+   [cljsjs/soundjs "0.6.2-0"]]
 
   :plugins
   [[lein-figwheel "0.5.16"]
