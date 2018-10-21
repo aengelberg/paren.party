@@ -1,0 +1,41 @@
+body {
+    background-color: black;
+    background-size: contain;
+    font-family: "Consolas", monaco, monospace;
+    color: #00AA11;
+}
+
+.center {
+    text-align: center;
+}
+
+div.main {
+    width: 750px;
+    max-width: 100%;
+    margin-top: 0px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: left;
+}
+
+
+div.titles {
+    height: 100px;
+}
+
+
+table {
+    width: 100%;
+    text-align: center;
+}
+
+
+#musical-keyboard-emoji {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+.social-media img {
+    height: 30px;
+}

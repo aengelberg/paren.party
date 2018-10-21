@@ -1,0 +1,20 @@
+# Build outputs
+classes/
+target/
+build/
+pom.xml
+*.class
+*.jar
+resources/public/js/compiled/
+
+# Common runtime files
+.lein-*
+.nrepl-port
+.nrepl-history
+.rebel_readline_history
+
+# Editor and cache files
+.DS_Store
+*~
+\#*\#
+.\#*
