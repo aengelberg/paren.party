@@ -18,12 +18,13 @@
 (defonce parens (atom {}))
 
 
+(defonce bg-color (atom "#000000"))
+
+
 (defn page
   []
-  [:div
-   {:style {:width "100%"
-            :height "100%"
-            :background-color (rand-nth ["red" "blue"])}}
+  [:div.main
+   {:style {:background-color @bg-color}}
    (for [[id {:keys [text color size posn rotate]}] @parens
          :when posn
          :let [{:keys [x y]} posn]]
@@ -68,7 +69,7 @@
     (fn [parens]
       (into {}
             (keep
-              (fn [[id {:keys [started total size start end]
+              (fn [[id {:keys [started total size dir start end]
                         :as paren}]]
                 (let [now (millis)
                       progress (- now started)
@@ -76,8 +77,10 @@
                       %complete (/ progress total)
                       base-x (between (:x start) (:x end) %complete)
                       base-y (between (:y start) (:y end) %complete)
-                      horizontal-jump (Math/cos (* rhythm-progress (/ measure) Math/PI 4))
-                      jump-x (* 0.02 horizontal-jump)
+                      horizontal-jump (* dir (Math/cos (* rhythm-progress
+                                                          (/ measure)
+                                                          Math/PI 4)))
+                      jump-x (* 0.015 horizontal-jump)
                       jump-y (* -0.03
                                 (/ size 30)
                                 (Math/abs (Math/sin (* rhythm-progress (/ measure) Math/PI 4))))
@@ -88,25 +91,45 @@
                     [id (assoc paren
                                :posn {:x x, :y y}
                                :rotate rotate)]))))
-            parens))))
+            parens)))
+  (let [now (millis)
+        n (* (- now @music-started) (/ measure) 2 Math/PI)
+        r (max 0 (* 30 (Math/sin n)))
+        g (max 0 (* 30 (Math/sin (+ n (* 0.66 Math/PI)))))
+        b (max 0 (* 30 (Math/sin (+ n (* 1.33 Math/PI)))))]
+    (reset! bg-color (str "rgb(" r "," g "," b ")"))))
 
 
 (defn add-parens!
   []
-  (swap! parens assoc
-         (str "paren" (millis))
-         (let [[start-x end-x text] (rand-nth [[-0.01 1 (rand-nth ["(" "[" "{"])]
-                                               [1 -0.01 (rand-nth [")" "]" "}"])]])
+  (swap! parens merge
+         (let [now (millis)
+               size (rand-nth (range 14 30))
+               total (* 10000 (/ 30 size))
+               color (rand-color)
+               [left right] (rand-nth [["(" ")"]
+                                       ["[" "]"]
+                                       ["{" "}"]])
                start-y (rand-between 0.1 0.9)
-               end-y (max 0.1 (min 0.9 (+ start-y (rand-between -0.05 0.05))))
-               size (rand-nth (range 14 30))]
-           {:started (millis)
-            :total (* 10000 (/ 30 size))
-            :text text
-            :size size
-            :color (rand-color)
-            :start {:x start-x, :y start-y}
-            :end {:x end-x, :y end-y}})))
+               end-y (max 0.1 (min 0.9 (+ start-y (rand-between -0.2 0.2))))]
+           {(str "paren-left-" now)
+            {:started now
+             :total total
+             :text left
+             :size size
+             :color color
+             :dir 1
+             :start {:x -0.01, :y start-y}
+             :end {:x 0.47, :y end-y}}
+            (str "paren-right-" now)
+            {:started now
+             :total total
+             :text right
+             :size size
+             :color color
+             :dir -1
+             :start {:x 1, :y start-y}
+             :end {:x 0.53, :y end-y}}})))
 
 
 (defonce tick-daemon (mt/every (/ 1000 60) #(update-parens!)))
