@@ -97,6 +97,8 @@
                total (* 10000 (/ 30 size))
                color (rand-color)
                [left right] (rand-nth [["(" ")"]
+                                       ["(" ")"]
+                                       ["(" ")"]
                                        ["[" "]"]
                                        ["{" "}"]])
                start-y (rand-between 0.1 0.9)
