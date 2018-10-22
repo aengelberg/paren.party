@@ -30,7 +30,9 @@
 
 (defn between
   [lo hi frac]
-  (+ lo (* frac (- hi lo))))
+  (if (>= frac 1)
+    hi
+    (+ lo (* frac (- hi lo)))))
 
 
 (defn rand-between
@@ -51,6 +53,25 @@
 (defonce music-started (atom 0))
 
 
+(defn render-parens
+  []
+  [:div.main
+   {:style {:background-color @bg-color}}
+   (for [[id {:keys [text color size posn rotate opacity]}] @parens
+         :when posn
+         :let [{:keys [x y]} posn]]
+     ^{:key id}
+     [:span
+      {:style {:position "fixed"
+               :left (str (* 100 x) "%")
+               :top (str (* 100 y) "%")
+               :color color
+               :transform (str "rotate(" rotate "deg)")
+               :font-size (str size "pt")
+               :opacity opacity}}
+      text])])
+
+
 (defn update-parens!
   []
   (swap!
@@ -66,20 +87,34 @@
                       %complete (/ progress total)
                       base-x (between (:x start) (:x end) %complete)
                       base-y (between (:y start) (:y end) %complete)
+                      jump-suppression (->> (- %complete 0.9)
+                                            (* 10)
+                                            (min 1)
+                                            (max 0)
+                                            (- 1))
                       horizontal-jump (* dir (Math/cos (* rhythm-progress
                                                           (/ measure)
-                                                          Math/PI 4)))
+                                                          Math/PI 4))
+                                         jump-suppression)
                       jump-x (* 0.015 horizontal-jump)
                       jump-y (* -0.03
                                 (/ size 30)
-                                (Math/abs (Math/sin (* rhythm-progress (/ measure) Math/PI 4))))
+                                (Math/abs (Math/sin (* rhythm-progress (/ measure) Math/PI 4)))
+                                jump-suppression)
                       x (+ base-x jump-x)
                       y (+ base-y jump-y)
                       rotate (* horizontal-jump 10)]
-                  (when (< %complete 1)
+                  (cond
+                    (< %complete 1)
                     [id (assoc paren
                                :posn {:x x, :y y}
-                               :rotate rotate)]))))
+                               :rotate rotate)]
+
+                    (< progress (+ total 1000))
+                    [id (assoc paren
+                               :posn {:x base-x, :y base-y}
+                               :rotate 0
+                               :opacity (- 1 (/ (- progress total) 1000)))]))))
             parens)))
   (let [now (millis)
         n (* (- now @music-started) (/ measure) 2 Math/PI)
@@ -111,7 +146,7 @@
              :color color
              :dir 1
              :start {:x -0.01, :y start-y}
-             :end {:x 0.47, :y end-y}}
+             :end {:x 0.49, :y end-y}}
             (str "paren-right-" now)
             {:started now
              :total total
@@ -120,7 +155,7 @@
              :color color
              :dir -1
              :start {:x 1, :y start-y}
-             :end {:x 0.53, :y end-y}}})))
+             :end {:x 0.51, :y end-y}}})))
 
 
 (defn start-the-party!
@@ -143,20 +178,7 @@
 (defn page
   []
   (if (or @started? (not MOBILE))
-    [:div.main
-     {:style {:background-color @bg-color}}
-     (for [[id {:keys [text color size posn rotate]}] @parens
-           :when posn
-           :let [{:keys [x y]} posn]]
-       ^{:key id}
-       [:span
-        {:style {:position "fixed"
-                 :left (str (* 100 x) "%")
-                 :top (str (* 100 y) "%")
-                 :color color
-                 :transform (str "rotate(" rotate "deg)")
-                 :font-size (str size "pt")}}
-        text])]
+    [render-parens]
     [:div.main
      {:style {:background-color "black"}
       :on-click #(when @ready?
