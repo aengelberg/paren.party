@@ -57,7 +57,7 @@
   []
   [:div.main
    {:style {:background-color @bg-color}}
-   (for [[id {:keys [text color size posn rotate opacity]}] @parens
+   (for [[id {:keys [text color size posn rotate opacity dir]}] @parens
          :when posn
          :let [{:keys [x y]} posn]]
      ^{:key id}
@@ -66,7 +66,10 @@
                :left (str (* 100 x) "%")
                :top (str (* 100 y) "%")
                :color color
-               :transform (str "rotate(" rotate "deg)")
+               :transform (str "rotate(" rotate "deg) "
+                               "translate("
+                               (if (pos? dir) "-" "")
+                               "50%, 0)")
                :font-size (str size "pt")
                :opacity opacity}}
       text])])
@@ -146,7 +149,7 @@
              :color color
              :dir 1
              :start {:x -0.01, :y start-y}
-             :end {:x 0.49, :y end-y}}
+             :end {:x 0.5, :y end-y}}
             (str "paren-right-" now)
             {:started now
              :total total
@@ -155,7 +158,7 @@
              :color color
              :dir -1
              :start {:x 1, :y start-y}
-             :end {:x 0.51, :y end-y}}})))
+             :end {:x 0.5, :y end-y}}})))
 
 
 (defn start-the-party!
