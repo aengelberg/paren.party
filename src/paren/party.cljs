@@ -181,7 +181,9 @@
 (defn page
   []
   (if (or @started? (not MOBILE))
-    [render-parens]
+    [:div
+     {:on-click #(add-parens!)}
+     [render-parens]]
     [:div.main
      {:style {:background-color "black"}
       :on-click #(when @ready?
