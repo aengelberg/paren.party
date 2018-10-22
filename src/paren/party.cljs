@@ -189,7 +189,10 @@
       :on-click #(when @ready?
                    (reset! started? true)
                    (start-the-party!))}
-     [:p.touch-to-start "Touch to start"]]))
+     [:p.touch-to-start
+      (if @ready?
+        "Touch to start"
+        "Loading...")]]))
 
 
 (defonce start
