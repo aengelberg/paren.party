@@ -7,6 +7,20 @@ div.main {
     position: absolute; top: 0; right: 0; bottom: 0; left: 0;
 }
 
+div.credits {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    color: #FFFFFFAA;
+    padding: 10px;
+    font-size: 10pt;
+    font-size: 2vmin;
+}
+
+div.credits a {
+    color: #FFAAFFAA;
+}
+
 .touch-to-start {
     text-align: center;
     position: absolute;

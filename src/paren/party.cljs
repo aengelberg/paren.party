@@ -180,19 +180,25 @@
 
 (defn page
   []
-  (if (or @started? (not MOBILE))
-    [:div
-     {:on-click #(add-parens!)}
-     [render-parens]]
-    [:div.main
-     {:style {:background-color "black"}
-      :on-click #(when @ready?
-                   (reset! started? true)
-                   (start-the-party!))}
-     [:p.touch-to-start
-      (if @ready?
-        "Touch to start"
-        "Loading...")]]))
+  [:div
+   (if (or @started? (not MOBILE))
+     [:div
+      {:on-click #(add-parens!)}
+      [render-parens]]
+     [:div.main
+      {:style {:background-color "black"}
+       :on-click #(when @ready?
+                    (reset! started? true)
+                    (start-the-party!))}
+      [:p.touch-to-start
+       (if @ready?
+         "Touch to start"
+         "Loading...")]])
+   [:div.credits
+    "Made with <3 by "
+    [:a {:href "https://twitter.com/aengelbro"} "@aengelbro"]
+    " and "
+    [:a {:href "https://twitter.com/arrdem"} "@arrdem"]]])
 
 
 (defonce start
