@@ -127,6 +127,26 @@
     (reset! bg-color (str "rgb(" r "," g "," b ")"))))
 
 
+(defn gen-pair
+  []
+  (if (re-find #"egalitarian" (or window.location.href ""))
+    (rand-nth [["(" ")"]
+               ["[" "]"]
+               ["{" "}"]
+               ["<" ">"]
+               ["“" "”"]
+               ["«" "»"]
+               ["⦃" "⦄"]
+               ["⦅" "⦆"]
+               ["〚" "〛"]
+               ["⸨" "⸩"]])
+    (rand-nth [["(" ")"]
+               ["(" ")"]
+               ["(" ")"]
+               ["[" "]"]
+               ["{" "}"]])))
+
+
 (defn add-parens!
   []
   (swap! parens merge
@@ -134,11 +154,7 @@
                size (rand-nth (range 14 30))
                total (* 10000 (/ 30 size))
                color (rand-color)
-               [left right] (rand-nth [["(" ")"]
-                                       ["(" ")"]
-                                       ["(" ")"]
-                                       ["[" "]"]
-                                       ["{" "}"]])
+               [left right] (gen-pair)
                start-y (rand-between 0.1 0.9)
                end-y (max 0.1 (min 0.9 (+ start-y (rand-between -0.2 0.2))))]
            {(str "paren-left-" now)
