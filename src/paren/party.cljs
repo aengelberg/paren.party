@@ -212,9 +212,13 @@
          "Loading...")]])
    [:div.credits
     "Made with <3 by "
-    [:a {:href "https://twitter.com/aengelbro"} "@aengelbro"]
+    [:a {:href "https://twitter.com/aengelbro"
+         :target "_blank"}
+     "@aengelbro"]
     " and "
-    [:a {:href "https://twitter.com/arrdem"} "@arrdem"]]])
+    [:a {:href "https://twitter.com/arrdem"
+         :target "_blank"}
+     "@arrdem"]]])
 
 
 (defonce start
