@@ -12,6 +12,7 @@
 ;; define your app data so that it doesn't get over-written on reload
 
 (defn millis
+  "Get the current time in milliseconds."
   []
   (.getTime (js/Date.)))
 
@@ -22,10 +23,16 @@
 (defonce ready? (atom false))
 
 
-(defonce parens (atom {}))
+(defonce paren-config (atom {}))
 
 
-(defonce bg-color (atom "#000000"))
+(defonce current-tick (atom 0))
+
+
+(defonce music-started (atom 0))
+
+
+(def measure 2000)
 
 
 (defn between
@@ -47,84 +54,58 @@
                            (rand-nth ["33" "77" "DD"])])))
 
 
-(def measure 2000)
-
-
-(defonce music-started (atom 0))
+(defn render-paren
+  [id now {:keys [started total size dir start end text color]}]
+  (let [progress (- now started)
+        rhythm-progress (- now @music-started)
+        %complete (/ progress total)
+        base-x (between (:x start) (:x end) %complete)
+        base-y (between (:y start) (:y end) %complete)
+        jump-suppression (->> (- %complete 0.9)
+                              (* 10)
+                              (min 1)
+                              (max 0)
+                              (- 1))
+        horizontal-jump (* dir (Math/cos (* rhythm-progress
+                                            (/ measure)
+                                            Math/PI 4))
+                           jump-suppression)
+        jump-x (* 0.015 horizontal-jump)
+        jump-y (* -0.03
+                  (/ size 30)
+                  (Math/abs (Math/sin (* rhythm-progress (/ measure) Math/PI 4)))
+                  jump-suppression)
+        x (+ base-x jump-x)
+        y (+ base-y jump-y)
+        rotate (* horizontal-jump 10)
+        opacity (min 1 (- 1 (/ (- progress total) 1000)))]
+    [:span
+     {:style {:position "fixed"
+              :left (str (* 100 x) "%")
+              :top (str (* 100 y) "%")
+              :color color
+              :transform (str "rotate(" rotate "deg) "
+                              "translate("
+                              (if (pos? dir) "-" "")
+                              "50%, 0)")
+              :font-size (str size "pt")
+              :opacity opacity}}
+     text]))
 
 
 (defn render-parens
   []
-  [:div.main
-   {:style {:background-color @bg-color}}
-   (for [[id {:keys [text color size posn rotate opacity dir]}] @parens
-         :when posn
-         :let [{:keys [x y]} posn]]
-     ^{:key id}
-     [:span
-      {:style {:position "fixed"
-               :left (str (* 100 x) "%")
-               :top (str (* 100 y) "%")
-               :color color
-               :transform (str "rotate(" rotate "deg) "
-                               "translate("
-                               (if (pos? dir) "-" "")
-                               "50%, 0)")
-               :font-size (str size "pt")
-               :opacity opacity}}
-      text])])
-
-
-(defn update-parens!
-  []
-  (swap!
-    parens
-    (fn [parens]
-      (into {}
-            (keep
-              (fn [[id {:keys [started total size dir start end]
-                        :as paren}]]
-                (let [now (millis)
-                      progress (- now started)
-                      rhythm-progress (- now @music-started)
-                      %complete (/ progress total)
-                      base-x (between (:x start) (:x end) %complete)
-                      base-y (between (:y start) (:y end) %complete)
-                      jump-suppression (->> (- %complete 0.9)
-                                            (* 10)
-                                            (min 1)
-                                            (max 0)
-                                            (- 1))
-                      horizontal-jump (* dir (Math/cos (* rhythm-progress
-                                                          (/ measure)
-                                                          Math/PI 4))
-                                         jump-suppression)
-                      jump-x (* 0.015 horizontal-jump)
-                      jump-y (* -0.03
-                                (/ size 30)
-                                (Math/abs (Math/sin (* rhythm-progress (/ measure) Math/PI 4)))
-                                jump-suppression)
-                      x (+ base-x jump-x)
-                      y (+ base-y jump-y)
-                      rotate (* horizontal-jump 10)]
-                  (cond
-                    (< %complete 1)
-                    [id (assoc paren
-                               :posn {:x x, :y y}
-                               :rotate rotate)]
-
-                    (< progress (+ total 1000))
-                    [id (assoc paren
-                               :posn {:x base-x, :y base-y}
-                               :rotate 0
-                               :opacity (- 1 (/ (- progress total) 1000)))]))))
-            parens)))
-  (let [now (millis)
+  (let [now @current-tick
+        config @paren-config
         n (* (- now @music-started) (/ measure) 2 Math/PI)
         r (max 0 (* 20 (Math/sin n)))
         g (max 0 (* 20 (Math/sin (+ n (* 0.66 Math/PI)))))
         b (max 0 (* 20 (Math/sin (+ n (* 1.33 Math/PI)))))]
-    (reset! bg-color (str "rgb(" r "," g "," b ")"))))
+    [:div.main
+     {:style {:background-color (str "rgb(" r "," g "," b ")")}}
+     (for [[id paren] config]
+       ^{:key id}
+       [render-paren id now paren])]))
 
 
 (defn gen-pair
@@ -147,9 +128,9 @@
                ["{" "}"]])))
 
 
-(defn add-parens!
+(defn spawn-parens!
   []
-  (swap! parens merge
+  (swap! paren-config merge
          (let [now (millis)
                size (rand-nth (range 14 30))
                total (* 10000 (/ 30 size))
@@ -179,10 +160,10 @@
 
 (defn start-the-party!
   []
-  (reset! music-started (millis))
-  (mt/every (/ 1000 60) #(update-parens!))
-  (mt/every (/ measure 1.5) #(add-parens!))
-  (mt/every 64000 #(createjs.Sound.play "music")))
+  (mt/every (/ 1000 60) #(reset! current-tick (millis)))
+  (mt/every (/ measure 1.5) #(spawn-parens!))
+  (mt/every 64000 #(do (reset! music-started (millis))
+                       (createjs.Sound.play "music"))))
 
 
 (createjs.Sound.on
@@ -199,7 +180,7 @@
   [:div
    (if (or @started? (not MOBILE))
      [:div
-      {:on-click #(add-parens!)}
+      {:on-click #(spawn-parens!)}
       [render-parens]]
      [:div.main
       {:style {:background-color "black"}
