@@ -26,10 +26,15 @@
 (defonce paren-config (atom {}))
 
 
-(defonce current-tick (atom 0))
+(defonce latest-tick (atom 0))
 
 
 (defonce music-started (atom 0))
+
+
+(defn current-tick
+  []
+  (- (millis) @music-started))
 
 
 (def measure 2000)
@@ -55,9 +60,8 @@
 
 
 (defn render-paren
-  [id now {:keys [started total size dir start end text color]}]
-  (let [progress (- now started)
-        rhythm-progress (- now @music-started)
+  [id tick {:keys [started total size dir start end text color]}]
+  (let [progress (- tick started)
         %complete (/ progress total)
         base-x (between (:x start) (:x end) %complete)
         base-y (between (:y start) (:y end) %complete)
@@ -66,14 +70,14 @@
                               (min 1)
                               (max 0)
                               (- 1))
-        horizontal-jump (* dir (Math/cos (* rhythm-progress
+        horizontal-jump (* dir (Math/cos (* tick
                                             (/ measure)
                                             Math/PI 4))
                            jump-suppression)
         jump-x (* 0.015 horizontal-jump)
         jump-y (* -0.03
                   (/ size 30)
-                  (Math/abs (Math/sin (* rhythm-progress (/ measure) Math/PI 4)))
+                  (Math/abs (Math/sin (* tick (/ measure) Math/PI 4)))
                   jump-suppression)
         x (+ base-x jump-x)
         y (+ base-y jump-y)
@@ -95,9 +99,9 @@
 
 (defn render-parens
   []
-  (let [now @current-tick
+  (let [tick @latest-tick
         config @paren-config
-        n (* (- now @music-started) (/ measure) 2 Math/PI)
+        n (* (- tick @music-started) (/ measure) 2 Math/PI)
         r (max 0 (* 20 (Math/sin n)))
         g (max 0 (* 20 (Math/sin (+ n (* 0.66 Math/PI)))))
         b (max 0 (* 20 (Math/sin (+ n (* 1.33 Math/PI)))))]
@@ -105,7 +109,7 @@
      {:style {:background-color (str "rgb(" r "," g "," b ")")}}
      (for [[id paren] config]
        ^{:key id}
-       [render-paren id now paren])]))
+       [render-paren id tick paren])]))
 
 
 (defn gen-pair
@@ -131,15 +135,15 @@
 (defn spawn-parens!
   []
   (swap! paren-config merge
-         (let [now (millis)
+         (let [tick (current-tick)
                size (rand-nth (range 14 30))
                total (* 10000 (/ 30 size))
                color (rand-color)
                [left right] (gen-pair)
                start-y (rand-between 0.1 0.9)
                end-y (max 0.1 (min 0.9 (+ start-y (rand-between -0.2 0.2))))]
-           {(str "paren-left-" now)
-            {:started now
+           {(str "paren-left-" tick)
+            {:started tick
              :total total
              :text left
              :size size
@@ -147,8 +151,8 @@
              :dir 1
              :start {:x -0.01, :y start-y}
              :end {:x 0.5, :y end-y}}
-            (str "paren-right-" now)
-            {:started now
+            (str "paren-right-" tick)
+            {:started tick
              :total total
              :text right
              :size size
@@ -160,10 +164,10 @@
 
 (defn start-the-party!
   []
-  (mt/every (/ 1000 60) #(reset! current-tick (millis)))
+  (reset! music-started (millis))
+  (mt/every (/ 1000 60) #(reset! latest-tick (current-tick)))
   (mt/every (/ measure 1.5) #(spawn-parens!))
-  (mt/every 64000 #(do (reset! music-started (millis))
-                       (createjs.Sound.play "music"))))
+  (mt/every 64000 #(createjs.Sound.play "music")))
 
 
 (createjs.Sound.on
