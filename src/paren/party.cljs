@@ -134,32 +134,41 @@
 
 (defn spawn-parens!
   []
-  (swap! paren-config merge
-         (let [tick (current-tick)
-               size (rand-nth (range 14 30))
-               total (* 10000 (/ 30 size))
-               color (rand-color)
-               [left right] (gen-pair)
-               start-y (rand-between 0.1 0.9)
-               end-y (max 0.1 (min 0.9 (+ start-y (rand-between -0.2 0.2))))]
-           {(str "paren-left-" tick)
-            {:started tick
-             :total total
-             :text left
-             :size size
-             :color color
-             :dir 1
-             :start {:x -0.01, :y start-y}
-             :end {:x 0.5, :y end-y}}
-            (str "paren-right-" tick)
-            {:started tick
-             :total total
-             :text right
-             :size size
-             :color color
-             :dir -1
-             :start {:x 1, :y start-y}
-             :end {:x 0.5, :y end-y}}})))
+  (swap!
+    paren-config
+    (fn [config]
+      (-> config
+          (merge
+            (let [tick (current-tick)
+                  size (rand-nth (range 14 30))
+                  total (* 10000 (/ 30 size))
+                  color (rand-color)
+                  [left right] (gen-pair)
+                  start-y (rand-between 0.1 0.9)
+                  end-y (max 0.1 (min 0.9 (+ start-y (rand-between -0.2 0.2))))]
+              {(str "paren-left-" tick)
+               {:started tick
+                :total total
+                :text left
+                :size size
+                :color color
+                :dir 1
+                :start {:x -0.01, :y start-y}
+                :end {:x 0.5, :y end-y}}
+               (str "paren-right-" tick)
+               {:started tick
+                :total total
+                :text right
+                :size size
+                :color color
+                :dir -1
+                :start {:x 1, :y start-y}
+                :end {:x 0.5, :y end-y}}}))
+          (->>
+            (remove
+              (fn [[id paren]]
+                (< (+ (:started paren) (:total paren) 2000) (current-tick))))
+            (into {}))))))
 
 
 (defn start-the-party!
