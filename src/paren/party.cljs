@@ -1,7 +1,7 @@
 (ns paren.party
   (:require
     [cljsjs.soundjs]
-    [goog.userAgent :refer [MOBILE]]
+    [goog.userAgent :refer [MOBILE WINDOWS]]
     [manifold-cljs.deferred :as d]
     [manifold-cljs.executor :as ex]
     [manifold-cljs.time :as mt]
@@ -15,6 +15,12 @@
   "Get the current time in milliseconds."
   []
   (.getTime (js/Date.)))
+
+
+(def manual-start?
+  "Certain devices don't allow auto-playing sound, so we have to introduce a
+  manual start so the music plays."
+  (or MOBILE WINDOWS))
 
 
 (defonce started? (atom false))
@@ -184,14 +190,14 @@
   (fn maybe-start
     []
     (reset! ready? true)
-    (when-not MOBILE
+    (when-not manual-start?
       (start-the-party!))))
 
 
 (defn page
   []
   [:div
-   (if (or @started? (not MOBILE))
+   (if (or @started? (not manual-start?))
      [:div
       {:on-click #(spawn-parens!)}
       [render-parens]]
