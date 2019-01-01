@@ -7,15 +7,15 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-{{ checksum "alex.engelberg.lol/project.clj" }}-{{ .Revision }}
-            - v1-{{ checksum "alex.engelberg.lol/project.clj" }}-
+            - v1-{{ checksum "paren.party/project.clj" }}-{{ .Revision }}
+            - v1-{{ checksum "paren.party/project.clj" }}-
             - v1-
       - run:
           working_directory: paren.party
           name: Build JS
           command: lein cljsbuild once min
       - save_cache:
-          key: v1-{{ checksum "alex.engelberg.lol/project.clj" }}-{{ .Revision }}
+          key: v1-{{ checksum "paren.party/project.clj" }}-{{ .Revision }}
           paths:
             - ~/.m2
       - save_cache:
