@@ -1,0 +1,56 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/clojure:lein-2.8.1
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-{{ checksum "alex.engelberg.lol/project.clj" }}-{{ .Revision }}
+            - v1-{{ checksum "alex.engelberg.lol/project.clj" }}-
+            - v1-
+      - run:
+          working_directory: paren.party
+          name: Build JS
+          command: lein cljsbuild once min
+      - save_cache:
+          key: v1-{{ checksum "alex.engelberg.lol/project.clj" }}-{{ .Revision }}
+          paths:
+            - ~/.m2
+      - save_cache:
+          key: built-js-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+          paths:
+            - paren.party/resources/public/js/compiled
+  deploy:
+    docker:
+      - image: circleci/python:2.7-jessie
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - built-js-{{ .Environment.CIRCLE_WORKFLOW_ID }}
+      - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      - run:
+          name: Deploy paren.party
+          command: aws s3 sync paren.party/resources/public/ s3://paren.party/ --delete
+      - run:
+          name: Deploy www.paren.party
+          command: aws s3 sync paren.party/resources/public/ s3://www.paren.party/ --delete
+      - run:
+          name: Deploy egalitarian.paren.party
+          command: aws s3 sync paren.party/resources/public/ s3://egalitarian.paren.party/ --delete
+workflows:
+  version: 2
+  build-site:
+    jobs:
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
