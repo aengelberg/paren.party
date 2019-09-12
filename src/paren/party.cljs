@@ -20,7 +20,7 @@
 (def manual-start?
   "Certain devices don't allow auto-playing sound, so we have to introduce a
   manual start so the music plays."
-  (or MOBILE WINDOWS))
+  (or MOBILE WINDOWS (not= (.-state (new js/AudioContext)) "running")))
 
 
 (defonce started? (atom false))
