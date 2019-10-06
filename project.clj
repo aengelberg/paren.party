@@ -1,5 +1,5 @@
 (defproject paren.party "0.1.0-SNAPSHOT"
-  :description "PAREN PARTY"
+  :description "PAREN PARTY 2.0"
   :url "http://paren.party"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
